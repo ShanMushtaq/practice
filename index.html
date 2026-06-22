@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MURAQBA — 3D Spatial Acronyms (Sharp Rendering Fix)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        :root {
+            --bg-cream: #F7F0E6;
+            --accent-terra: #BE8E6F;
+            --text-brown: #3D2B1F;
+        }
+        
+        body {
+            margin: 0;
+            background-color: #0b0b0b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Vertical Canvas Structure with Increased Perspective for Clarity */
+        #render-comp {
+            width: 1080px;
+            height: 1920px;
+            background-color: var(--bg-cream);
+            position: relative;
+            overflow: hidden;
+            transform-origin: center;
+            transform: scale(0.45); /* Remove this scale before screen recording */
+            perspective: 4000px; /* Enhanced perspective to prevent blurriness and maintain sharpness */
+        }
+
+        /* Constant Motion Textures */
+        .grain {
+            position: absolute;
+            inset: 0;
+            background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.06"/%3E%3C/svg%3E');
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .blob {
+            position: absolute;
+            width: 1000px;
+            height: 1000px;
+            background: var(--accent-terra);
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.35;
+            top: 5%;
+            left: -15%;
+            z-index: 1;
+        }
+        .blob-2 {
+            width: 700px;
+            height: 700px;
+            top: 65%;
+            right: -20%;
+            opacity: 0.25;
+        }
+
+        /* Scenes */
+        .scene {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+            transform-style: preserve-3d;
+        }
+
+        /* Mechanic 1: 3D Kinetic Blocks (The Hook) */
+        .stage-3d {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transform-style: preserve-3d;
+        }
+        .bar-3d {
+            width: 850px;
+            height: 180px;
+            background-color: var(--text-brown);
+            color: var(--bg-cream);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 85px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 25px 50px rgba(61,43,31,0.2);
+        }
+        .bar-3d.alt {
+            background-color: var(--accent-terra);
+            color: var(--text-brown);
+        }
+
+        /* Mechanic 2: 3D Z-Axis Card Stack (The Acronyms) */
+        .card-stack {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            transform-style: preserve-3d;
+        }
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-cream);
+            border: 4px solid var(--accent-terra);
+            border-radius: 20px;
+            padding: 60px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 40px 80px rgba(61,43,31,0.15);
+            backface-visibility: hidden;
+        }
+        .card-num {
+            position: absolute;
+            top: 40px;
+            right: 50px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--accent-terra);
+            letter-spacing: 2px;
+        }
+        .card h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 160px;
+            margin: 0 0 10px 0;
+            color: var(--text-brown);
+            line-height: 1;
+        }
+        .card h2 {
+            font-size: 40px;
+            margin: 0 0 30px 0;
+            color: var(--accent-terra);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        .card p {
+            font-size: 34px;
+            line-height: 1.4;
+            color: var(--text-brown);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* Mechanic 3: Split Geometric Wipe (The Outro) */
+        .split-wrapper {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .split-panel {
+            flex: 1;
+            background: var(--text-brown);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .split-content {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 120px;
+            color: var(--bg-cream);
+            font-weight: 700;
+        }
+        .sub-content {
+            font-family: 'Outfit', sans-serif;
+            font-size: 44px;
+            letter-spacing: 4px;
+            color: var(--accent-terra);
+            font-weight: 300;
+        }
+
+        /* Persistent Brand Avatar Anchor */
+        .brand-watermark {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 90;
+            color: var(--text-brown);
+        }
+        .brand-watermark h2 {
+            font-size: 40px;
+            letter-spacing: 8px;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+        }
+        .brand-watermark p.tagline {
+            font-size: 26px;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin: 0;
+        }
+        .avatar-circle {
+            width: 100px;
+            height: 100px;
+            background: transparent; /* Changed to transparent for perfect fit */
+            border-radius: 50%;
+            margin: 0 auto 24px auto;
+            border: 3px solid var(--accent-terra);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            overflow: hidden; /* Ensures the image fits perfectly and is contained */
+        }
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Guarantees the image covers the area and maintains aspect ratio */
+            border-radius: 50%; /* Maintains the circular shape of the internal image */
+        }
+    </style>
+</head>
+<body>
+
+<div id="render-comp">
+    <div class="grain"></div>
+    <div class="blob"></div>
+    <div class="blob blob-2"></div>
+
+    <!-- Scene 1: Kinetic Hook -->
+    <div class="scene" id="scene-hook">
+        <div class="stage-3d">
+            <div class="bar-3d">IF YOU DON'T KNOW</div>
+            <div class="bar-3d alt">THESE 4 TERMS</div>
+            <div class="bar-3d">STOP RUNNING ADS.</div>
+        </div>
+    </div>
+
+    <!-- Scene 2: 3D Z-Axis Card Stack -->
+    <div class="scene" id="scene-cards">
+        <div class="card-stack">
+            <!-- Cards are loaded backward so CPM is naturally on top -->
+            <div class="card" id="card-roas">
+                <div class="card-num">4/4</div>
+                <h1>ROAS</h1>
+                <h2>Return on Ad Spend</h2>
+                <p>For every dollar spent, how much you got back.</p>
+            </div>
+            <div class="card" id="card-cpc">
+                <div class="card-num">3/4</div>
+                <h1>CPC</h1>
+                <h2>Cost Per Click</h2>
+                <p>How much you're paying every time someone clicks.</p>
+            </div>
+            <div class="card" id="card-ctr">
+                <div class="card-num">2/4</div>
+                <h1>CTR</h1>
+                <h2>Click Through Rate</h2>
+                <p>The percentage of people who saw your ad and actually clicked.</p>
+            </div>
+            <div class="card" id="card-cpm">
+                <div class="card-num">1/4</div>
+                <h1>CPM</h1>
+                <h2>Cost Per 1,000 Impressions</h2>
+                <p>This tells you how expensive it is just to be seen.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scene 3: Split Outro -->
+    <div class="scene" id="scene-outro">
+        <div class="split-wrapper">
+            <div class="split-panel top-panel">
+                <div class="split-content">SAVE THIS</div>
+            </div>
+            <div class="split-panel bottom-panel">
+                <div class="sub-content">BEFORE YOUR NEXT CAMPAIGN</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persistent Branding - Logo Image Integrated -->
+    <div class="brand-watermark">
+        <div class="avatar-circle">
+            <!-- Image integrated verbatim and perfectly fit to circular frame -->
+            <img src="17810842548817.jpg" alt="Meditation Logo">
+        </div>
+        <h2>MURAQBA</h2>
+        <p class="tagline">Observe · Target · Scale</p>
+    </div>
+</div>
+
+<script>
+    // Continuous Background Motion ensuring screen is never static 
+    gsap.to('.blob', { x: 250, y: 150, scale: 1.1, rotation: 15, duration: 18, repeat: -1, yoyo: true, ease: "sine.inOut" });
+    gsap.to('.blob-2', { x: -200, y: -200, scale: 1.15, rotation: -15, duration: 22, repeat: -1, yoyo: true, ease: "sine.inOut" });
+
+    // Ensure pristine visibility resets to prevent overlap errors
+    gsap.set('.scene', { autoAlpha: 0 });
+
+    const tl = gsap.timeline({ repeat: -1 }); // Loops endlessly for preview
+
+    /* ============================================================
+       SCENE 1: THE HOOK
+    ============================================================ */
+    tl.set('#scene-hook', { autoAlpha: 1 });
+    tl.from('.bar-3d', {
+        rotationX: -90,
+        y: 150,
+        z: -300,
+        opacity: 0,
+        stagger: 0.15,
+        duration: 1.6,
+        ease: "back.out(1.4)"
+    });
+    
+    tl.to({}, { duration: 2.0 }); // Reading beat
+
+    tl.to('.bar-3d', {
+        rotationY: 45,
+        z: -500,
+        opacity: 0,
+        stagger: 0.1,
+        duration: 1.2,
+        ease: "power3.in"
+    });
+    tl.set('#scene-hook', { autoAlpha: 0 });
+
+    /* ============================================================
+       SCENE 2: 3D Z-AXIS CARD STACK (THE ACRONYMS)
+    ============================================================ */
+    tl.set('#scene-cards', { autoAlpha: 1 });
+    
+    // Position cards deep into the Z-axis
+    tl.set('#card-roas', { z: -1500, y: -300, scale: 0.85, opacity: 0.4 });
+    tl.set('#card-cpc', { z: -1000, y: -200, scale: 0.9, opacity: 0.6 });
+    tl.set('#card-ctr', { z: -500, y: -100, scale: 0.95, opacity: 0.8 });
+    tl.set('#card-cpm', { z: 0, y: 0, scale: 1, opacity: 1 });
+
+    // Cards slam down into formation
+    tl.from('.card', {
+        y: 1000,
+        rotationX: 30,
+        opacity: 0,
+        duration: 1.6,
+        ease: "power4.out",
+        stagger: 0.1
+    }, "-=0.4");
+
+    // 1. CPM Display -> Flies up and out
+    tl.to({}, { duration: 2.5 }); 
+    tl.to('#card-cpm', { y: -1200, z: 500, rotationX: -20, opacity: 0, duration: 1.2, ease: "power3.in" }, "move1");
+    tl.to('#card-ctr', { z: 0, y: 0, scale: 1, opacity: 1, duration: 1.2, ease: "power3.inOut" }, "move1");
+    tl.to('#card-cpc', { z: -500, y: -100, scale: 0.95, opacity: 0.8, duration: 1.2, ease: "power3.inOut" }, "move1");
+    tl.to('#card-roas', { z: -1000, y: -200, scale: 0.9, opacity: 0.6, duration: 1.2, ease: "power3.inOut" }, "move1");
+
+    // 2. CTR Display -> Flies up and out
+    tl.to({}, { duration: 2.5 }); 
+    tl.to('#card-ctr', { y: -1200, z: 500, rotationX: -20, opacity: 0, duration: 1.2, ease: "power3.in" }, "move2");
+    tl.to('#card-cpc', { z: 0, y: 0, scale: 1, opacity: 1, duration: 1.2, ease: "power3.inOut" }, "move2");
+    tl.to('#card-roas', { z: -500, y: -100, scale: 0.95, opacity: 0.8, duration: 1.2, ease: "power3.inOut" }, "move2");
+
+    // 3. CPC Display -> Flies up and out
+    tl.to({}, { duration: 2.5 }); 
+    tl.to('#card-cpc', { y: -1200, z: 500, rotationX: -20, opacity: 0, duration: 1.2, ease: "power3.in" }, "move3");
+    tl.to('#card-roas', { z: 0, y: 0, scale: 1, opacity: 1, duration: 1.2, ease: "power3.inOut" }, "move3");
+
+    // 4. ROAS Display -> Flies up and out
+    tl.to({}, { duration: 2.5 }); 
+    tl.to('#card-roas', { y: -1200, z: 500, rotationX: -20, opacity: 0, duration: 1.2, ease: "power3.in" });
+    tl.set('#scene-cards', { autoAlpha: 0 });
+
+    /* ============================================================
+       SCENE 3: SPLITGEOMETRIC WIPE (OUTRO)
+    ============================================================ */
+    tl.set('#scene-outro', { autoAlpha: 1 });
+    tl.from('.top-panel', { yPercent: -100, duration: 1.2, ease: "expo.out" }, "-=0.2");
+    tl.from('.bottom-panel', { yPercent: 100, duration: 1.2, ease: "expo.out" }, "-=1.2");
+    
+    tl.from('.split-content, .sub-content', { scale: 0.8, opacity: 0, duration: 1.4, ease: "power4.out", stagger: 0.2 }, "-=0.6");
+    
+    tl.to({}, { duration: 3.0 }); // Final Call to Action Hold
+
+    // Wipe clean
+    tl.to('.top-panel', { xPercent: -100, duration: 1, ease: "power3.in" });
+    tl.to('.bottom-panel', { xPercent: 100, duration: 1, ease: "power3.in" }, "-=1");
+    tl.set('#scene-outro', { autoAlpha: 0 });
+
+</script>
+</body>
+</html>
